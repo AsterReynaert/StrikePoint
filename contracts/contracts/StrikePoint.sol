@@ -55,9 +55,9 @@ contract StrikePoint {
         require(msg.value == option.premium, "Incorrect premium amount");
         require(block.timestamp < option.expirationDate, "Option has expired");
 
-        option.buyer = payable(msg.sender);
-        option.writer.transfer(msg.value); 
-    
+        option.buyer = payable(msg.sender); // set the buyer of the option
+        (bool success, ) = option.writer.call{value: msg.value}("");
+        require(success, "Transfer failed");
     }
 
 
