@@ -50,6 +50,7 @@ contract StrikePoint {
 
     function buyOption(uint256 _optionId) public payable {
         Option storage option = options[_optionId];
+        
         require(_optionId < optionCount, "Option does not exist");
         require(option.buyer == address(0), "Option already purchased");
         require(msg.value == option.premium, "Incorrect premium amount");
@@ -60,5 +61,43 @@ contract StrikePoint {
         require(success, "Transfer failed");
     }
 
+    function setFinalPrice(uint256 _optionId, uint256 _finalPrice) public onlyOwner {
+        Option storage option = options[_optionId];
 
+        require(_optionId < optionCount, "Option does not exist");
+        require(block.timestamp >= option.expirationDate, "Option has not expired yet"); //european style option
+        require(option.finalPrice == 0, "Final price already set");
+
+        option.finalPrice = _finalPrice;
+    }
+
+    function exerciseOption(uint256 _optionId) public {
+        require(_optionId < optionCount, "Option does not exist");
+        Option storage option = options[_optionId];
+
+        require(option.buyer == msg.sender, "Only the buyer can exercise the option");
+        require(option.finalPrice != 0, "settlement price not set yet");
+
+        uint256 payoff;
+
+        if(option.optionType == OptionType.CALL){
+            payoff = option.finalPrice > option.strikePrice ? option.finalPrice - option.strikePrice : 0;
+        }
+        else { // PUT
+            payoff = option.finalPrice < option.strikePrice ? option.strikePrice - option.finalPrice : 0; 
+        }
+
+        uint256 leftOver = option.lockedFunds - payoff;
+        option.lockedFunds = 0;
+
+        if(payoff > 0){
+            (bool sentToBuyer, ) = option.buyer.call{value: payoff}("");
+            require(sentToBuyer, "Payout to buyer failed");
+        }
+
+        if(leftOver > 0){
+            (bool sentToWriter, ) = option.writer.call{value: leftOver}("");
+            require(sentToWriter, "Refund to writer failed");
+        }
+    }
 }
