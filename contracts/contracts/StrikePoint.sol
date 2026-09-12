@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.34;
 
+import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol"; //import for real time eth price feed
+
 contract StrikePoint {
 
     enum OptionType { CALL, PUT}
@@ -19,14 +21,11 @@ contract StrikePoint {
     address public owner; 
     mapping(uint256 => Option) public options;
     uint256 public optionCount = 0; //to give a unique id to each option
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "must be the owner");
-        _;
-    }
+    AggregatorV3Interface internal pricefeed;
     
-    constructor() {
+    constructor(address _priceFeedAddress) {
         owner = msg.sender;
+        pricefeed = AggregatorV3Interface(_priceFeedAddress); //e.g. Sepolia testnet ETH/USD price feed
     }
 
     function writeOption(OptionType _type, uint256 _strikePrice, uint256 _premium, uint256 _expirationDate) public payable {
@@ -49,9 +48,8 @@ contract StrikePoint {
     }
 
     function buyOption(uint256 _optionId) public payable {
-        Option storage option = options[_optionId];
-        
         require(_optionId < optionCount, "Option does not exist");
+        Option storage option = options[_optionId];
         require(option.buyer == address(0), "Option already purchased");
         require(msg.value == option.premium, "Incorrect premium amount");
         require(block.timestamp < option.expirationDate, "Option has expired");
@@ -61,15 +59,17 @@ contract StrikePoint {
         require(success, "Transfer failed");
     }
 
-    function setFinalPrice(uint256 _optionId, uint256 _finalPrice) public onlyOwner {
-        Option storage option = options[_optionId];
-
+   function settlePrice(uint256 _optionId) public {
         require(_optionId < optionCount, "Option does not exist");
-        require(block.timestamp >= option.expirationDate, "Option has not expired yet"); //european style option
-        require(option.finalPrice == 0, "Final price already set");
+        Option storage option = options[_optionId]; 
+        require(block.timestamp >= option.expirationDate, "Option has not expired yet");
+        require(option.finalPrice == 0, "Already settled");
 
-        option.finalPrice = _finalPrice;
-    }
+        (, int256 price, , , ) = pricefeed.latestRoundData();
+        require(price > 0, "Invalid price from price feed");
+
+        option.finalPrice = uint256(price);
+   }
 
     function exerciseOption(uint256 _optionId) public {
         require(_optionId < optionCount, "Option does not exist");
