@@ -134,7 +134,7 @@ describe("StrikePoint", async function () {
 
         await assert.rejects(
           strikePoint.write.buyOption(
-            [0n], //optionId
+            [0n], 
             {
               account: buyer.account,
               value: 10n, // incorrect premium!
@@ -143,5 +143,53 @@ describe("StrikePoint", async function () {
           /revert/,
         );
     });
-    
+
+    it("Should revert when trying to buy an option that is already bought by someone else", async function () {
+        const { mockPrice, strikePoint } = await deployStrikePoint();
+        const [writer, buyerOne, buyerTwo] = await viem.getWalletClients();
+        const expiry = await futurExperationDate();
+
+        await strikePoint.write.writeOption(
+            [CALL, 2000n, 20n, expiry],
+            { 
+                account: writer.account, 
+                value: 1000n,
+            }
+        );
+
+        await strikePoint.write.buyOption(
+            [0n], 
+            { 
+                account: buyerOne.account, 
+                value: 20n,
+            }
+        );
+
+        await assert.rejects(
+          strikePoint.write.buyOption(
+            [0n], 
+            {
+              account: buyerTwo.account,
+              value: 20n, 
+            },
+          ),
+          /revert/,
+        );
+    });
+
+    it("Should revert when trying to buy an option that doesn't exist", async function () {
+        const { mockPrice, strikePoint } = await deployStrikePoint();
+        const [buyer] = await viem.getWalletClients();
+        
+        await assert.rejects(
+            strikePoint.write.buyOption(
+                [99n], // option id that doesn't exist
+                { 
+                    account: buyer.account,
+                    value: 20n,
+                }
+            ),
+            /revert/,
+        );
+    });
 });
