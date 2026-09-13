@@ -7,6 +7,7 @@ import { getAddress, parseEther } from "viem";
 describe("StrikePoint", async function () {
     const { viem } = await network.create();
     const publicClient = await viem.getPublicClient();
+    const testClient = await viem.getTestClient();
     const CALL = 0;
     const PUT = 1;
 
@@ -192,4 +193,144 @@ describe("StrikePoint", async function () {
             /revert/,
         );
     });
+
+    // settlePrice Tests
+
+    it("Should revert when trying to settle an option that hasn't expired yet", async function () {
+        const {mockPrice, strikePoint} = await deployStrikePoint();
+        const [writer, buyer] = await viem.getWalletClients();
+        const expiry = await futurExperationDate();
+        
+        await strikePoint.write.writeOption(
+            [CALL, 2000n, 20n, expiry],
+            { 
+                account: writer.account, 
+                value: 1000n,
+            }
+        );
+
+        await strikePoint.write.buyOption(
+            [0n], 
+            { 
+                account: buyer.account, 
+                value: 20n,
+            }
+        );
+
+        await assert.rejects(
+          strikePoint.write.settlePrice(
+            [0n], 
+            { 
+                account: writer.account
+            }
+          ),
+          /revert/,
+        );
+    });
+
+    it("should revert when trying to settle an option that has not been bought yet", async function () {
+        const {mockPrice, strikePoint} = await deployStrikePoint();
+        const [writer] = await viem.getWalletClients();
+        const expiry = await futurExperationDate();
+        
+        await strikePoint.write.writeOption(
+            [CALL, 2000n, 20n, expiry],
+            { 
+                account: writer.account, 
+                value: 1000n,
+            }
+        );
+
+        await assert.rejects(
+          strikePoint.write.settlePrice(
+            [0n], 
+            { 
+                account: writer.account
+            }
+          ),
+          /revert/,
+        );
+    });
+
+    it("Should correctly set finalPrice from the mock price feed after expiry", async function () {
+        const {mockPrice, strikePoint} = await deployStrikePoint();
+        const [writer, buyer] = await viem.getWalletClients();
+        const expiry = await futurExperationDate();
+        await mockPrice.write.setPrice([2100n]);
+        
+        await strikePoint.write.writeOption(
+            [CALL, 2000n, 20n, expiry],
+            { 
+                account: writer.account, 
+                value: 1000n,
+            }
+        );
+
+        await strikePoint.write.buyOption(
+            [0n], 
+            { 
+                account: buyer.account, 
+                value: 20n,
+            }
+        );
+
+        await testClient.increaseTime({
+            seconds: 10000001,
+        });
+
+        await strikePoint.write.settlePrice(
+            [0n], 
+            { 
+                account: writer.account
+            }
+        );
+
+        const option = await strikePoint.read.options([0n]);
+        assert.equal(option[7], 2100n); // finalPrice should be set to the mock price
+    });
+
+    it("should revert when trying to settle an option that has already been settled", async function () {
+        const {mockPrice, strikePoint} = await deployStrikePoint();
+        const [writer, buyer] = await viem.getWalletClients();
+        const expiry = await futurExperationDate();
+        await mockPrice.write.setPrice([2100n]);
+        
+        await strikePoint.write.writeOption(
+            [CALL, 2000n, 20n, expiry],
+            { 
+                account: writer.account, 
+                value: 1000n,
+            }
+        );
+
+        await strikePoint.write.buyOption(
+            [0n], 
+            { 
+                account: buyer.account, 
+                value: 20n,
+            }
+        );
+
+        await testClient.increaseTime({
+            seconds: 10000001,
+        });
+
+        await strikePoint.write.settlePrice(
+            [0n], 
+            { 
+                account: writer.account
+            }
+        );
+
+        await assert.rejects(
+          strikePoint.write.settlePrice(
+            [0n], 
+            { 
+                account: writer.account
+            }
+          ),
+          /revert/,
+        );
+    });
+
 });
