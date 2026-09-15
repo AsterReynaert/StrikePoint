@@ -62,6 +62,7 @@ contract StrikePoint {
    function settlePrice(uint256 _optionId) public {
         require(_optionId < optionCount, "Option does not exist");
         Option storage option = options[_optionId]; 
+        require(option.buyer != address(0), "Option has not been bought yet");
         require(block.timestamp >= option.expirationDate, "Option has not expired yet");
         require(option.finalPrice == 0, "Already settled");
 
