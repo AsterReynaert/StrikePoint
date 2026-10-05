@@ -28,6 +28,12 @@ contract StrikePoint {
         pricefeed = AggregatorV3Interface(_priceFeedAddress); //e.g. Sepolia testnet ETH/USD price feed
     }
 
+    function getLatestStockPrice() public view {
+        (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = pricefeed.latestRoundData();
+        require(answer > 0, "unvalid price date");
+        require(updatedAt > 0, "unvalid time");
+    }
+
     function writeOption(OptionType _type, uint256 _strikePrice, uint256 _premium, uint256 _expirationDate) public payable {
         require(msg.value > 0, "must lock funds to write an option");
         require(_expirationDate > block.timestamp, "Expiration date must be in the future");
