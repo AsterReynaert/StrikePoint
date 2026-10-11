@@ -1,4 +1,5 @@
 export const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"; //address to check if the option is sold or not
 
 export const CONTRACT_ABI = [
     {
