@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { LayoutGrid, Pen, PenLine } from 'lucide-react';
+import { LayoutGrid, Pen, PenLine, ShoppingCart } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -23,14 +23,14 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'Options',
-        href: '/test',
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Write an Option',
+        title: 'Write',
         href: '/write-option',
         icon: Pen,
+    },
+    {
+        title: 'Buy',
+        href: '/buy-option',
+        icon: ShoppingCart,
     },
 ];
 
