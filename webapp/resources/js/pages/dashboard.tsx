@@ -5,8 +5,14 @@ import { Address, createPublicClient, createWalletClient, custom } from "viem";
 import { hardhat } from "viem/chains";
 import Popup from "./popup";
 import { Option } from "./option";
-import { Section } from "./section"
+import { Section } from "./section";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
+import { EthPrice } from "./ethPrice";
+
+import EthChart from "./ethChart";
+
+
+
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -102,11 +108,17 @@ export default function Dashboard() {
     const boughtOptions = options.filter((o) => sameAddress(o.buyer, address));
     const writtenOptions = options.filter((o) =>
         sameAddress(o.writer, address),
-    );
+    );    
 
     return (
         <>
             <Head title="Dashboard" />
+
+            <EthPrice />
+
+            <EthChart />
+
+            
 
             {connectError && (
                 <Popup
