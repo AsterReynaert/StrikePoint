@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.34;
 
-import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol"; //import for real time eth price feed
-
 contract StrikePoint {
 
     enum OptionType { CALL, PUT}
@@ -21,17 +19,9 @@ contract StrikePoint {
     address public owner; 
     mapping(uint256 => Option) public options;
     uint256 public optionCount = 0; //to give a unique id to each option
-    AggregatorV3Interface internal pricefeed;
     
-    constructor(address _priceFeedAddress) {
+    constructor() {
         owner = msg.sender;
-        pricefeed = AggregatorV3Interface(_priceFeedAddress); //e.g. Sepolia testnet ETH/USD price feed
-    }
-
-    function getLatestStockPrice() public view {
-        (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) = pricefeed.latestRoundData();
-        require(answer > 0, "unvalid price date");
-        require(updatedAt > 0, "unvalid time");
     }
 
     function writeOption(OptionType _type, uint256 _strikePrice, uint256 _premium, uint256 _expirationDate) public payable {
@@ -65,17 +55,14 @@ contract StrikePoint {
         require(success, "Transfer failed");
     }
 
-   function settlePrice(uint256 _optionId) public {
+   function settlePrice(uint256 _optionId, uint256 _price) public {
         require(_optionId < optionCount, "Option does not exist");
         Option storage option = options[_optionId]; 
         require(option.buyer != address(0), "Option has not been bought yet");
         require(block.timestamp >= option.expirationDate, "Option has not expired yet");
         require(option.finalPrice == 0, "Already settled");
 
-        (, int256 price, , , ) = pricefeed.latestRoundData();
-        require(price > 0, "Invalid price from price feed");
-
-        option.finalPrice = uint256(price);
+        option.finalPrice = uint256(_price);
    }
 
     function exerciseOption(uint256 _optionId) public {
