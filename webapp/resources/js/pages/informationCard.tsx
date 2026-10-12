@@ -1,12 +1,15 @@
 import { Option } from "./option";
+import { profitBadge as ProfitBadge } from "./profitBadge";
 import { ZERO_ADDRESS } from "../lib/contract";
 
 export function InformationCard({
     option,
     type,
+    ethUsd,
 }: {
     option: Option;
     type: "buyer" | "writer";
+    ethUsd?: number;
 }) {
     const expirationDate = Number(option.expirationDate) * 1000 < Date.now();
     const sold = option.buyer !== ZERO_ADDRESS;
@@ -30,6 +33,14 @@ export function InformationCard({
             <p>
                 <strong>Strike Price:</strong> {option.strikePrice.toString()}
             </p>
+
+            <ProfitBadge
+                optionType={option.optionType}
+                strikePrice={option.strikePrice}
+                finalPrice={option.finalPrice}
+                ethUsd={ethUsd}
+            />
+
             <p>
                 <strong>Premium:</strong> {option.premium.toString()} wei
             </p>

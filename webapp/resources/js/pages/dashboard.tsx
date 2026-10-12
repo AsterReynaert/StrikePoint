@@ -117,7 +117,7 @@ export default function Dashboard() {
         <>
             <Head title="Dashboard" />
 
-            <EthPrice price={ethUsd} />
+            <EthPrice price={ethUsd} className="" />
 
             <EthChart />
 

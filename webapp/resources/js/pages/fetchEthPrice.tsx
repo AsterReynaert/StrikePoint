@@ -14,7 +14,7 @@ export function fetchEthPrice(intervalMs = 30000){
     console.warn("Etherscan error:", data);
     return;
 }
-            setPrice(data.result.ethusd);
+            setPrice(Number(data.result.ethusd));
         }
         load();
         const id = setInterval(load, intervalMs)

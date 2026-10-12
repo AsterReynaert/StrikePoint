@@ -8,13 +8,15 @@ export function Section({
     emptyText,
     actionText,
     actionHref,
+    ethUsd,
 }: {
-    title: string;
-    options: Option[];
-    role: "buyer" | "writer";
-    emptyText: String;
-    actionText: string;
-    actionHref: string;
+    title: string,
+    options: Option[],
+    role: "buyer" | "writer",
+    emptyText: String,
+    actionText: string,
+    actionHref: string,
+    ethUsd?: number,
 }) {
     return (
         <section className="flex flex-col gap-3">
@@ -34,7 +36,7 @@ export function Section({
             ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                     {options.map((option) => (
-                        <InformationCard option={option} type={role} />
+                        <InformationCard option={option} type={role} ethUsd={ethUsd} />
                     ))}
                 </div>
             )}
