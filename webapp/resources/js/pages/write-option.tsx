@@ -1,4 +1,4 @@
-import { Head } from "@inertiajs/react";
+import { Head, router } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 import {
     createWalletClient,
@@ -9,6 +9,9 @@ import {
 import { hardhat } from "viem/chains";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
 import Popup from "./popup";
+import { EthPrice } from "./ethPrice";
+import { fetchEthPrice } from "./fetchEthPrice";
+import { dashboard } from "@/routes";
 
 export default function WriteOption() {
     const [address, setAddress] = useState<Address>();
@@ -78,8 +81,13 @@ export default function WriteOption() {
             account: address,
         });
 
-        const hash = await walletClient.writeContract(request);         
+        const hash = await walletClient.writeContract(request);     
+        await publicClient.waitForTransactionReceipt({hash});
+        router.visit(dashboard()) //redirect 
+
     }
+
+    const ethUsd = fetchEthPrice();
 
     return (
         <>
@@ -95,7 +103,12 @@ export default function WriteOption() {
                         )}
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {address && <p>Connected: {address}</p>}
+                <div className="pt-4">
+                    <EthPrice
+                    price={ethUsd}
+                    text="Current ETH/USD price:"
+                    className=" bold text-2xl italic" />
+                </div>
 
                 <form
                     className="flex max-w-sm flex-col gap-2"

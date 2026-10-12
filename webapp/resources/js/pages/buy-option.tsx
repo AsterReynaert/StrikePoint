@@ -1,4 +1,4 @@
-import { Head } from "@inertiajs/react";
+import { Head,router } from "@inertiajs/react";
 import { useEffect, useState } from "react";
 import {
     createWalletClient,
@@ -9,6 +9,7 @@ import {
 import { hardhat } from "viem/chains";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
 import Popup from "./popup";
+import { dashboard } from "@/routes";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"; //address to check if the option is sold or not
 
@@ -132,7 +133,9 @@ export default function BuyOption() {
             account: address,
         });
 
-        await walletClient.writeContract(request);
+        const hash = await walletClient.writeContract(request);
+        await publicClient.waitForTransactionReceipt({hash})
+        router.visit(dashboard())
         fetchOptions();
     }
 
