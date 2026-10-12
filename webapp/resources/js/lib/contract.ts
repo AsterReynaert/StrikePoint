@@ -3,13 +3,7 @@ export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"; //addr
 
 export const CONTRACT_ABI = [
     {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "_priceFeedAddress",
-          "type": "address"
-        }
-      ],
+      "inputs": [],
       "stateMutability": "nonpayable",
       "type": "constructor"
     },
@@ -37,13 +31,6 @@ export const CONTRACT_ABI = [
       "name": "exerciseOption",
       "outputs": [],
       "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "getLatestStockPrice",
-      "outputs": [],
-      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -131,6 +118,11 @@ export const CONTRACT_ABI = [
         {
           "internalType": "uint256",
           "name": "_optionId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_price",
           "type": "uint256"
         }
       ],

@@ -21,7 +21,7 @@ function TradingViewWidget() {
           "volumeUpColor": "rgba(34, 171, 148, 0.5)",
           "volumeDownColor": "rgba(247, 82, 95, 0.5)",
           "backgroundColor": "#ffffff",
-          "widgetFontColor": "#131722",
+          "widgetFontColor  ": "#131722",
           "upColor": "#22ab94",
           "downColor": "#f7525f",
           "borderUpColor": "#22ab94",

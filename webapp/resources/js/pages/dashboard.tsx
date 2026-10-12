@@ -10,6 +10,7 @@ import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
 import { EthPrice } from "./ethPrice";
 
 import EthChart from "./ethChart";
+import { fetchEthPrice } from "./fetchEthPrice";
 
 
 
@@ -110,11 +111,13 @@ export default function Dashboard() {
         sameAddress(o.writer, address),
     );    
 
+    const ethUsd = fetchEthPrice();
+
     return (
         <>
             <Head title="Dashboard" />
 
-            <EthPrice />
+            <EthPrice price={ethUsd} />
 
             <EthChart />
 
