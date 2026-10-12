@@ -2,21 +2,20 @@ export function profitBadge({
     optionType,
     strikePrice,
     finalPrice,
-    currentPrice,
     ethUsd,
 }: {
     optionType: number;
     strikePrice: bigint;
-    finalPrice: bigint;
-    currentPrice: bigint;
-    ethUsd: number
+    finalPrice: bigint;  
+    ethUsd: number;
 }) {
     const settled = finalPrice > 0n;
     const strike = Number(strikePrice);
     const price = settled ? Number(finalPrice) : ethUsd;
+
+    //optiontype === 0 => CALL
     const diff = optionType === 0 ? price - strike : strike - price;
     const inTheMoney = diff > 0;
-
 
     return (
         <p
@@ -28,9 +27,9 @@ export function profitBadge({
             }
         >
             {inTheMoney
-                ? "In the money by $${Number(diff).toFixed(2)}"
+                ? `In the money by $${diff.toFixed(2)}`
                 : "Out of the money"}
-            {settled ? "(settled)" : ""}
+            {settled ? " (settled)" : ""}
         </p>
     );
 }

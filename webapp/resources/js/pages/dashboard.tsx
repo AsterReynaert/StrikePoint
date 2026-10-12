@@ -140,6 +140,7 @@ export default function Dashboard() {
                     emptyText="You haven't bought any options yet."
                     actionText="Buy an option"
                     actionHref="/buy-option"
+                    ethUsd={ethUsd}
                 />
                 <Section
                     title="Options you wrote:"
@@ -148,6 +149,7 @@ export default function Dashboard() {
                     emptyText="You haven't written any options yet."
                     actionText="Write an option"
                     actionHref="/write-option"
+                    ethUsd={ethUsd}
                 />
             </div>
         </>

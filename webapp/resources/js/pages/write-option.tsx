@@ -5,6 +5,7 @@ import {
     createPublicClient,
     custom,
     type Address,
+    parseEther,
 } from "viem";
 import { hardhat } from "viem/chains";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
@@ -74,10 +75,10 @@ export default function WriteOption() {
             args: [
                 optionType,
                 BigInt(strikePrice),
-                BigInt(premium),
+                parseEther(premium),
                 expiryTimestamp,
             ],
-            value: BigInt(collateral),
+            value: parseEther(collateral),
             account: address,
         });
 
@@ -128,8 +129,8 @@ export default function WriteOption() {
                     <input
                         type="number"
                         min="0"
-                        step="1"
-                        placeholder="Strike Price"
+                        step="any"
+                        placeholder="Strike Price (USD)"
                         value={strikePrice}
                         onChange={(e) => setStrikePrice(e.target.value)}
                         required
@@ -137,8 +138,8 @@ export default function WriteOption() {
                     <input
                         type="number"
                         min="0"
-                        step="1"
-                        placeholder="Premium"
+                        step="any"
+                        placeholder="Premium (ETH)"
                         value={premium}
                         onChange={(e) => setPremium(e.target.value)}
                         required
@@ -155,8 +156,8 @@ export default function WriteOption() {
                     <input
                         type="number"
                         min="0"
-                        step="1"
-                        placeholder="Collateral"
+                        step="any"
+                        placeholder="Collateral (ETH)"
                         value={collateral}
                         onChange={(e) => setCollateral(e.target.value)}
                         required
