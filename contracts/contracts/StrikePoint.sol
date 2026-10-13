@@ -80,7 +80,8 @@ contract StrikePoint {
         else { // PUT
             payoff = option.finalPrice < option.strikePrice ? option.strikePrice - option.finalPrice : 0; 
         }
-
+    
+        if (payoff > option.lockedFunds) payoff = option.lockedFunds; //cap the payoff
         uint256 leftOver = option.lockedFunds - payoff;
         option.lockedFunds = 0;
 
@@ -94,4 +95,23 @@ contract StrikePoint {
             require(sentToWriter, "Refund to writer failed");
         }
     }
+
+    function reclaimFunds(uint256 _optionId) public {
+        require(_optionId < optionCount, "Option does not exist");
+        Option storage option = options[_optionId];
+
+        require(msg.sender == option.writer, "Only the writer can reclaim");
+        require(option.buyer == address(0), "Option was bought");
+        require(block.timestamp >= option.expirationDate, "Option has not expired yet");
+        require(option.lockedFunds > 0, "Nothing to reclaim");
+
+        uint256 amount = option.lockedFunds;
+        option.lockedFunds = 0;
+
+        (bool success, ) = option.writer.call{value: amount}("");
+        require(success, "Refund failed");
+    }
+        
+    
+
 }

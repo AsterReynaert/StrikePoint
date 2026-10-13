@@ -23,10 +23,18 @@ export default defineConfig({
     hardhatMainnet: {
       type: "edr-simulated",
       chainType: "l1",
+      mining: {
+        auto: true,
+        interval: 1000, // Automatically mines a block every 1 second
+      },
     },
     hardhatOp: {
       type: "edr-simulated",
       chainType: "op",
+      mining: {
+        auto: true,
+        interval: 1000,
+      },
     },
     sepolia: {
       type: "http",
