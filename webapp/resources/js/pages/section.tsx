@@ -9,6 +9,9 @@ export function Section({
     actionText,
     actionHref,
     ethUsd,
+    useProfitBadge, 
+    onExercise,
+    allOptions
 }: {
     title: string,
     options: Option[],
@@ -17,6 +20,9 @@ export function Section({
     actionText: string,
     actionHref: string,
     ethUsd?: number,
+    useProfitBadge: Boolean
+    onExercise?: (optionId: bigint) => void,
+    allOptions: Option[]
 }) {
     return (
         <section className="flex flex-col gap-3">
@@ -35,9 +41,21 @@ export function Section({
                 </div>
             ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                    {options.map((option) => (
-                        <InformationCard option={option} type={role} ethUsd={ethUsd} />
-                    ))}
+                    {options.map((option) => {
+                        const optionId = BigInt(allOptions.findIndex((o) => o === option));
+
+                        return (
+                            <InformationCard
+                                key={optionId.toString()}
+                                option={option}
+                                optionId={optionId}
+                                type={role}
+                                ethUsd={ethUsd}
+                                useProfitBadge={useProfitBadge}
+                                onExercise={onExercise ?? (() => {})}
+                            />
+                        );
+                    })}
                 </div>
             )}
         </section>

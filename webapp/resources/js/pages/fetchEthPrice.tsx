@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 
-export function fetchEthPrice(intervalMs = 30000){
+export function fetchEthPrice(intervalMs = 5000){
     const [price, setPrice] = useState<number>();
 
 

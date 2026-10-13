@@ -1,7 +1,14 @@
 import { Head, Link } from "@inertiajs/react";
 import { dashboard } from "@/routes";
 import { useState, useEffect } from "react";
-import { Address, createPublicClient, createWalletClient, custom } from "viem";
+import {
+    Address,
+    createPublicClient,
+    createTestClient,
+    createWalletClient,
+    custom,
+    http,
+} from "viem";
 import { hardhat } from "viem/chains";
 import Popup from "./popup";
 import { Option } from "./option";
@@ -12,12 +19,11 @@ import { EthPrice } from "./ethPrice";
 import EthChart from "./ethChart";
 import { fetchEthPrice } from "./fetchEthPrice";
 
-
-
-
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export default function Dashboard() {
+    const ethUsd = fetchEthPrice();
+
     const [address, setAddress] = useState<Address>();
     const [connectError, setConnectError] = useState<string>("");
     const [options, setOptions] = useState<Option[]>([]);
@@ -69,7 +75,7 @@ export default function Dashboard() {
             );
         }
 
-        const results = await Promise.all(promisedOptions); //.all makes sure that all promises are resolved before proceeding
+        const results = await Promise.all(promisedOptions);
 
         setOptions(
             results.map(
@@ -96,11 +102,98 @@ export default function Dashboard() {
         );
     }
 
-    // Auto connect + load options when page renders
+    async function autoSettle(optionId: bigint, currentPrice: number) {
+        const walletClient = createWalletClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+        const publicClient = createPublicClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+
+        const [account] = await walletClient.requestAddresses();
+
+        const { request } = await publicClient.simulateContract({
+            address: CONTRACT_ADDRESS,
+            abi: CONTRACT_ABI,
+            functionName: "settlePrice",
+            args: [optionId, BigInt(currentPrice)],
+            account,
+        });
+
+        const hash = await walletClient.writeContract(request);
+        await publicClient.waitForTransactionReceipt({ hash });
+        fetchOptions(); // Refresh the options state
+    }
+
+    async function checkSetteled() {
+        if (!options.length || !ethUsd || ethUsd <= 0 || !window.ethereum)
+            return;
+
+        const publicClient = createPublicClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+        const block = await publicClient.getBlock();
+
+        for (let i = 0; i < options.length; i++) {
+            const option = options[i];
+            const isBought = option.buyer !== ZERO_ADDRESS;
+            const isExpired = option.expirationDate <= block.timestamp;
+            const notSettled = option.finalPrice === 0n;
+
+            if (isBought && isExpired && notSettled) {
+                await autoSettle(BigInt(i), Math.round(ethUsd));
+            }
+        }
+    }
+
+    // Auto connect + load options + interval check
     useEffect(() => {
         connectToWallet();
         fetchOptions();
-    }, []);
+
+        // Enable interval mining on Hardhat so block.timestamp updates every second in Dashboard
+        const testClient = createTestClient({
+            chain: hardhat,
+            mode: "hardhat",
+            transport: http("http://127.0.0.1:8545"),
+        });
+        testClient.setIntervalMining({ interval: 1 });
+
+        const timer = setInterval(checkSetteled, 3000);
+
+        return () => clearInterval(timer);
+    }, [options, ethUsd]); // re-run when options or ethUsd changes (so it has the latest data to check for settlement)
+
+    async function handleExercise(optionId: bigint) {
+        if (!address || !window.ethereum) {
+            setConnectError("Connect your wallet first.");
+            return;
+        }
+
+        const walletClient = createWalletClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+        const publicClient = createPublicClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+
+        const { request } = await publicClient.simulateContract({
+            address: CONTRACT_ADDRESS,
+            abi: CONTRACT_ABI,
+            functionName: "exerciseOption",
+            args: [optionId],
+            account: address,
+        });
+
+        const hash = await walletClient.writeContract(request);
+        await publicClient.waitForTransactionReceipt({ hash });
+        fetchOptions();
+    }
 
     function sameAddress(a: string, b: string | undefined) {
         return b !== undefined && a.toLowerCase() === b.toLowerCase();
@@ -109,9 +202,7 @@ export default function Dashboard() {
     const boughtOptions = options.filter((o) => sameAddress(o.buyer, address));
     const writtenOptions = options.filter((o) =>
         sameAddress(o.writer, address),
-    );    
-
-    const ethUsd = fetchEthPrice();
+    );
 
     return (
         <>
@@ -120,8 +211,6 @@ export default function Dashboard() {
             <EthPrice price={ethUsd} className="" />
 
             <EthChart />
-
-            
 
             {connectError && (
                 <Popup
@@ -141,6 +230,9 @@ export default function Dashboard() {
                     actionText="Buy an option"
                     actionHref="/buy-option"
                     ethUsd={ethUsd}
+                    useProfitBadge={true}
+                    onExercise={handleExercise}
+                    allOptions={options}
                 />
                 <Section
                     title="Options you wrote:"
@@ -150,6 +242,8 @@ export default function Dashboard() {
                     actionText="Write an option"
                     actionHref="/write-option"
                     ethUsd={ethUsd}
+                    allOptions={options}
+                    useProfitBadge={false}
                 />
             </div>
         </>

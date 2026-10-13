@@ -1,4 +1,4 @@
-export const CONTRACT_ADDRESS = "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+export const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 export const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"; //address to check if the option is sold or not
 
 export const CONTRACT_ABI = [
@@ -111,6 +111,19 @@ export const CONTRACT_ABI = [
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_optionId",
+          "type": "uint256"
+        }
+      ],
+      "name": "reclaimFunds",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {

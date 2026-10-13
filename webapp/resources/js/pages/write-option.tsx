@@ -20,7 +20,7 @@ export default function WriteOption() {
     const [optionType, setOptionType] = useState<number>(0);
     const [strikePrice, setStrikePrice] = useState<string>("");
     const [premium, setPremium] = useState<string>("");
-    const [expiryHours, setExpiryHours] = useState<string>("");
+    const [expiryMinutes, setExpiryMinutes] = useState<string>("");
     const [collateral, setCollateral] = useState<string>("");
 
     async function connectToWallet() {
@@ -65,8 +65,7 @@ export default function WriteOption() {
         });
 
         const expiryTimestamp =
-            BigInt(Math.floor(Date.now() / 1000)) +
-            BigInt(expiryHours) * 3600n;
+            BigInt(Math.floor(Date.now() / 1000)) + BigInt(expiryMinutes) * 60n;
 
         const { request } = await publicClient.simulateContract({
             address: CONTRACT_ADDRESS,
@@ -82,10 +81,9 @@ export default function WriteOption() {
             account: address,
         });
 
-        const hash = await walletClient.writeContract(request);     
-        await publicClient.waitForTransactionReceipt({hash});
-        router.visit(dashboard()) //redirect 
-
+        const hash = await walletClient.writeContract(request);
+        await publicClient.waitForTransactionReceipt({ hash });
+        router.visit(dashboard()); //redirect
     }
 
     const ethUsd = fetchEthPrice();
@@ -95,20 +93,21 @@ export default function WriteOption() {
             <Head title="Write" />
 
             {connectError && (
-                            <Popup
-                                title="Wallet error!"
-                                message={connectError}
-                                buttonText="Connect to Metamask"
-                                onAction={connectToWallet}
-                            />
-                        )}
+                <Popup
+                    title="Wallet error!"
+                    message={connectError}
+                    buttonText="Connect to Metamask"
+                    onAction={connectToWallet}
+                />
+            )}
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="pt-4">
                     <EthPrice
-                    price={ethUsd}
-                    text="Current ETH/USD price:"
-                    className=" bold text-2xl italic" />
+                        price={ethUsd}
+                        text="Current ETH/USD price: $"
+                        className=" bold text-2xl italic"
+                    />
                 </div>
 
                 <form
@@ -148,9 +147,9 @@ export default function WriteOption() {
                         type="number"
                         min="1"
                         step="1"
-                        placeholder="Expiry Hours"
-                        value={expiryHours}
-                        onChange={(e) => setExpiryHours(e.target.value)}
+                        placeholder="Expiry Minutes"
+                        value={expiryMinutes}
+                        onChange={(e) => setExpiryMinutes(e.target.value)}
                         required
                     />
                     <input

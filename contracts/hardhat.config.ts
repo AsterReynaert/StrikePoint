@@ -1,6 +1,18 @@
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import { configVariable, defineConfig } from "hardhat/config";
 
+module.exports = {
+  solidity: "0.8.24",
+  networks: {
+    hardhat: {
+      mining: {
+        auto: true,      
+        interval: 1000  //auto mines every second to keep the time right
+      }
+    }
+  }
+};
+
 export default defineConfig({
   plugins: [hardhatToolboxViemPlugin],
   solidity: {
@@ -23,18 +35,10 @@ export default defineConfig({
     hardhatMainnet: {
       type: "edr-simulated",
       chainType: "l1",
-      mining: {
-        auto: true,
-        interval: 1000, // Automatically mines a block every 1 second
-      },
     },
     hardhatOp: {
       type: "edr-simulated",
       chainType: "op",
-      mining: {
-        auto: true,
-        interval: 1000,
-      },
     },
     sepolia: {
       type: "http",
