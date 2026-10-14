@@ -1,6 +1,6 @@
 import { Head, Link } from "@inertiajs/react";
 import { dashboard } from "@/routes";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
     Address,
     createPublicClient,
@@ -27,6 +27,14 @@ export default function Dashboard() {
     const [address, setAddress] = useState<Address>();
     const [connectError, setConnectError] = useState<string>("");
     const [options, setOptions] = useState<Option[]>([]);
+
+    const optionsRef = useRef<Option[]>([]);
+    const priceRef = useRef<number | undefined>(undefined);
+    const settlingRef = useRef(false);
+
+
+    optionsRef.current = options;
+    priceRef.current = ethUsd;
 
     async function connectToWallet() {
         if (!window.ethereum) {
@@ -127,45 +135,58 @@ export default function Dashboard() {
         fetchOptions(); // Refresh the options state
     }
 
-    async function checkSetteled() {
-        if (!options.length || !ethUsd || ethUsd <= 0 || !window.ethereum)
+    async function checkSettled() {
+        const opts = optionsRef.current;
+        const price = priceRef.current;
+        if (price === undefined)
+            return;
+        if (settlingRef.current)//already settling so dont do anything            
             return;
 
-        const publicClient = createPublicClient({
-            chain: hardhat,
-            transport: custom(window.ethereum),
-        });
-        const block = await publicClient.getBlock();
+        settlingRef.current = true; //lock
+        try {
+            const publicClient = createPublicClient({
+                chain: hardhat,
+                transport: custom(window.ethereum),
+            });
+            const block = await publicClient.getBlock();
 
-        for (let i = 0; i < options.length; i++) {
-            const option = options[i];
-            const isBought = option.buyer !== ZERO_ADDRESS;
-            const isExpired = option.expirationDate <= block.timestamp;
-            const notSettled = option.finalPrice === 0n;
-
-            if (isBought && isExpired && notSettled) {
-                await autoSettle(BigInt(i), Math.round(ethUsd));
+            for (let i = 0; i < opts.length; i++) {
+                const o = opts[i];
+                if (
+                    o.buyer !== ZERO_ADDRESS && //option has been bought
+                    o.expirationDate <= block.timestamp && //option has expired
+                    o.finalPrice === 0n //not settled yet
+                ) {
+                    await autoSettle(BigInt(i), Math.round(price));
+                }
             }
+        } catch (e) {
+            console.error("Auto-settle failed", e);
+        } finally {
+            settlingRef.current = false; //unlock
         }
     }
 
-    // Auto connect + load options + interval check
     useEffect(() => {
         connectToWallet();
         fetchOptions();
 
-        // Enable interval mining on Hardhat so block.timestamp updates every second in Dashboard
         const testClient = createTestClient({
             chain: hardhat,
             mode: "hardhat",
             transport: http("http://127.0.0.1:8545"),
         });
-        testClient.setIntervalMining({ interval: 1 });
+        testClient.setIntervalMining({ interval: 1 }); //auto mining to keep the block.timestamp current (every second)
 
-        const timer = setInterval(checkSetteled, 3000);
+        const refreshOptions = setInterval(fetchOptions, 5000); //refreshes the options to keep the data current
+        return () => clearInterval(refreshOptions);
+    }, []);
 
+    useEffect(() => {
+        const timer = setInterval(checkSettled, 3000);
         return () => clearInterval(timer);
-    }, [options, ethUsd]); // re-run when options or ethUsd changes (so it has the latest data to check for settlement)
+    }, []);
 
     async function handleExercise(optionId: bigint) {
         if (!address || !window.ethereum) {
