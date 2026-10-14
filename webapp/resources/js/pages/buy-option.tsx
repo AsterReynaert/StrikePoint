@@ -26,6 +26,7 @@ type Option = {
     expirationDate: bigint;
     lockedFunds: bigint;
     finalPrice: bigint;
+    collateral: bigint;
 };
 
 export default function BuyOption() {
@@ -33,7 +34,6 @@ export default function BuyOption() {
     const [connectError, setConnectError] = useState<string>("");
     const [options, setOptions] = useState<Option[]>([]);
     const [chainTime, setChainTime] = useState<bigint>(0n);
-
 
     async function connectToWallet() {
         if (!window.ethereum) {
@@ -97,6 +97,7 @@ export default function BuyOption() {
                     expirationDate,
                     lockedFunds,
                     finalPrice,
+                    collateral,
                 ]) => ({
                     writer,
                     buyer,
@@ -106,6 +107,7 @@ export default function BuyOption() {
                     expirationDate,
                     lockedFunds,
                     finalPrice,
+                    collateral,
                 }),
             ),
         );
@@ -116,16 +118,17 @@ export default function BuyOption() {
         connectToWallet();
         fetchOptions();
 
-        const testClient = createTestClient({ //to setup auto mining
+        const testClient = createTestClient({
+            //to setup auto mining
             chain: hardhat,
             mode: "hardhat",
             transport: http("http://127.0.0.1:8545"),
         });
 
-        testClient.setIntervalMining({ interval: 1 }) //auto mine a block every second so the block.timestamp gets updated
+        testClient.setIntervalMining({ interval: 1 }); //auto mine a block every second so the block.timestamp gets updated
+        const refresh = setInterval(fetchOptions, 5000); //because fetchOptions sets the chaintime
+        return () => clearInterval(refresh);
     }, []);
-
-    
 
     async function handleBuyOption(optionId: bigint, premium: bigint) {
         if (!address || !window.ethereum) {
@@ -157,40 +160,15 @@ export default function BuyOption() {
         fetchOptions();
     }
 
-    async function handleReclaim(optionId: bigint) {
-        if (!address || !window.ethereum) {
-            setConnectError("Connect your wallet first.");
-            return;
-        }
 
-        const walletClient = createWalletClient({
-            chain: hardhat,
-            transport: custom(window.ethereum),
-        });
-        const publicClient = createPublicClient({
-            chain: hardhat,
-            transport: custom(window.ethereum),
-        });
-
-        try {
-            const { request } = await publicClient.simulateContract({
-                address: CONTRACT_ADDRESS,
-                abi: CONTRACT_ABI,
-                functionName: "reclaimFunds",
-                args: [optionId],
-                account: address,
-            });
-
-            const hash = await walletClient.writeContract(request);
-            await publicClient.waitForTransactionReceipt({ hash });
-            fetchOptions();
-        } catch (e) {
-            console.error(e);
-            setConnectError("Reclaim failed: " + (e as Error).message);
-        }
-    }
-
-    
+    const available = options
+        .map((option, index) => ({ option, index }))
+        .filter(
+            ({ option }) =>
+                option.buyer === ZERO_ADDRESS && // not bought
+                option.expirationDate > chainTime && // not expired
+                option.writer.toLowerCase() !== address?.toLowerCase(), // not your own
+        );
 
     return (
         <>
@@ -206,85 +184,54 @@ export default function BuyOption() {
             )}
 
             <div className="flex flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                {options.length === 0 && <p>No options available</p>}
+                {available.length === 0 && <p>No options available to buy</p>}
                 <div className="flex flex-col gap-4">
-                    {options.map((option, index) => {
-                        const expired = option.expirationDate <= chainTime;
-                        const sold = option.buyer !== ZERO_ADDRESS;
-                        const isWriter =
-                            address?.toLowerCase() ===
-                            option.writer.toLowerCase();
-                        const reclaimed = option.lockedFunds === 0n;
+                    {available.map(({ option, index }) => (
+                        <div
+                            className="rounded border p-4 hover:shadow"
+                        >
+                            <p>
+                                <strong>Option ID:</strong> {index}
+                            </p>
+                            <p>
+                                <strong>Type:</strong>{" "}
+                                {option.optionType === 0 ? "CALL" : "PUT"}
+                            </p>
+                            <p>
+                                <strong>Writer:</strong> {option.writer}
+                            </p>
+                            <p>
+                                <strong>Strike Price:</strong> $
+                                {formatUnits(option.strikePrice, 2)}
+                            </p>
+                            <p>
+                                <strong>Size:</strong>{" "}
+                                {formatEther(option.collateral)} ETH
+                            </p>
+                            <p>
+                                <strong>Premium:</strong>{" "}
+                                {formatEther(option.premium)} ETH
+                            </p>
+                            <p>
+                                <strong>Expiration:</strong>{" "}
+                                {new Date(
+                                    Number(option.expirationDate) * 1000,
+                                ).toLocaleString()}
+                            </p>
 
-                        return (
-                            <div className="rounded border p-4 hover:shadow">
-                                <p>
-                                    <strong>Option ID:</strong> {index}
-                                </p>
-                                <p>
-                                    <strong>Type:</strong>{" "}
-                                    {option.optionType === 0 ? "CALL" : "PUT"}
-                                </p>
-                                <p>
-                                    <strong>Writer:</strong> {option.writer}
-                                </p>
-                                <p>
-                                    <strong>Strike Price:</strong>{" "}
-                                    {formatUnits(option.strikePrice, 2)}
-                                </p>
-                                <p>
-                                    <strong>Premium:</strong>{" "}
-                                    {formatEther(option.premium)} ETH
-                                </p>
-                                <p>
-                                    <strong>Expiration:</strong>{" "}
-                                    {new Date(
-                                        Number(option.expirationDate) * 1000,
-                                    ).toLocaleString()}
-                                </p>
-
-                                {sold && <p className="mt-2">Already bought</p>}
-                                {!sold && expired && (
-                                    <>
-                                        <p className="mt-2">Expired</p>
-                                        {isWriter && !reclaimed && (
-                                            <button
-                                                className="mt-2 rounded bg-green-600 px-4 py-2 font-bold text-white hover:bg-green-700"
-                                                onClick={() =>
-                                                    handleReclaim(BigInt(index))
-                                                }
-                                            >
-                                                Reclaim{" "}
-                                                {formatEther(
-                                                    option.lockedFunds,
-                                                )}{" "}
-                                                ETH
-                                            </button>
-                                        )}
-                                        {isWriter && reclaimed && (
-                                            <p className="mt-2">
-                                                Collateral reclaimed
-                                            </p>
-                                        )}
-                                    </>
-                                )}
-                                {!sold && !expired && (
-                                    <button
-                                        className="mt-2 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
-                                        onClick={() =>
-                                            handleBuyOption(
-                                                BigInt(index),
-                                                option.premium,
-                                            )
-                                        }
-                                    >
-                                        Buy for {formatEther(option.premium)}{" "}
-                                        ETH
-                                    </button>
-                                )}
-                            </div>
-                        );
-                    })}
+                            <button
+                                className="mt-2 rounded bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700"
+                                onClick={() =>
+                                    handleBuyOption(
+                                        BigInt(index),
+                                        option.premium,
+                                    )
+                                }
+                            >
+                                Buy for {formatEther(option.premium)} ETH
+                            </button>
+                        </div>
+                    ))}
                 </div>
             </div>
         </>

@@ -96,6 +96,7 @@ export default function Dashboard() {
                     expirationDate,
                     lockedFunds,
                     finalPrice,
+                    collateral
                 ]) => ({
                     writer,
                     buyer,
@@ -105,6 +106,7 @@ export default function Dashboard() {
                     expirationDate,
                     lockedFunds,
                     finalPrice,
+                    collateral
                 }),
             ),
         );
@@ -216,6 +218,39 @@ export default function Dashboard() {
         fetchOptions();
     }
 
+    async function handleReclaim(optionId: bigint) {
+            if (!address || !window.ethereum) {
+                setConnectError("Connect your wallet first.");
+                return;
+            }
+    
+            const walletClient = createWalletClient({
+                chain: hardhat,
+                transport: custom(window.ethereum),
+            });
+            const publicClient = createPublicClient({
+                chain: hardhat,
+                transport: custom(window.ethereum),
+            });
+    
+            try {
+                const { request } = await publicClient.simulateContract({
+                    address: CONTRACT_ADDRESS,
+                    abi: CONTRACT_ABI,
+                    functionName: "reclaimFunds",
+                    args: [optionId],
+                    account: address,
+                });
+    
+                const hash = await walletClient.writeContract(request);
+                await publicClient.waitForTransactionReceipt({ hash });
+                fetchOptions();
+            } catch (e) {
+                console.error(e);
+                setConnectError("Reclaim failed: " + (e as Error).message);
+            }
+        }
+
     function sameAddress(a: string, b: string | undefined) {
         return b !== undefined && a.toLowerCase() === b.toLowerCase();
     }
@@ -265,6 +300,7 @@ export default function Dashboard() {
                     ethUsd={ethUsd}
                     allOptions={options}
                     useProfitBadge={false}
+                    onReclaim={handleReclaim}
                 />
             </div>
         </>

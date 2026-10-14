@@ -11,7 +11,8 @@ export function Section({
     ethUsd,
     useProfitBadge, 
     onExercise,
-    allOptions
+    allOptions,
+    onReclaim
 }: {
     title: string,
     options: Option[],
@@ -22,7 +23,8 @@ export function Section({
     ethUsd?: number,
     useProfitBadge: Boolean
     onExercise?: (optionId: bigint) => void,
-    allOptions: Option[]
+    allOptions: Option[],
+    onReclaim?: (optionId: bigint) => void
 }) {
     return (
         <section className="flex flex-col gap-3">
@@ -53,6 +55,7 @@ export function Section({
                                 ethUsd={ethUsd}
                                 useProfitBadge={useProfitBadge}
                                 onExercise={onExercise ?? (() => {})}
+                                onReclaim={onReclaim ?? (() => {})}
                             />
                         );
                     })}

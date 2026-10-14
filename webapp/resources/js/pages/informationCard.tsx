@@ -1,7 +1,8 @@
 import { Option } from "./option";
 import { profitBadge as ProfitBadge } from "./profitBadge";
 import { ZERO_ADDRESS } from "../lib/contract";
-import { formatEther, formatUnits } from "viem";
+import { formatEther, formatUnits, parseUnits } from "viem";
+import { calcPayoff } from "./calcPayoff";
 
 export function InformationCard({
     option,
@@ -9,7 +10,8 @@ export function InformationCard({
     type,
     ethUsd,
     useProfitBadge,
-    onExercise
+    onExercise,
+    onReclaim,
 }: {
     option: Option;
     optionId: bigint;
@@ -17,11 +19,26 @@ export function InformationCard({
     ethUsd?: number;
     useProfitBadge: Boolean;
     onExercise: (optionId: bigint) => void;
+    onReclaim: (optionId: bigint) => void;
 }) {
     const expired = Number(option.expirationDate) * 1000 <= Date.now();
     const sold = option.buyer !== ZERO_ADDRESS;
     const settled = option.finalPrice > 0n;
     const exercised = option.lockedFunds === 0n;
+
+    const priceCents = settled
+        ? option.finalPrice
+        : ethUsd !== undefined
+          ? parseUnits(ethUsd.toFixed(2), 2)
+          : 0n; // if settled use settled price else use live price
+    const payoff = calcPayoff(option, priceCents);
+
+    //buyer => payout - premium payed, writer => premium recieved - payout
+    const net =
+        type === "buyer" ? payoff - option.premium : option.premium - payoff; //wei
+
+    const netUsd =
+        Number(formatEther(net)) * Number(formatUnits(priceCents, 2)); //eth * $/eth  => $
 
     return (
         <div className="rounded border p-4 hover:shadow">
@@ -65,17 +82,23 @@ export function InformationCard({
 
                 <div className="flex justify-between">
                     <span className="text-slate-500">Locked funds</span>
-                    <span>{formatEther(option.lockedFunds)} ETH</span>
+                    <span>{formatEther(option.collateral)} ETH</span>
                 </div>
 
                 <div className="flex justify-between">
                     <span className="text-slate-500">Final Settled Price</span>
-                    <span>{settled ? `$${formatUnits(option.finalPrice, 2)}` : "Not settled yet"}</span>
+                    <span>
+                        {settled
+                            ? `$${formatUnits(option.finalPrice, 2)}`
+                            : "Not settled yet"}
+                    </span>
                 </div>
 
                 <div className="flex justify-between">
                     <span className="text-slate-500">Expiration</span>
-                    <span className={expired ? "text-red-600 font-semibold" : ""}>
+                    <span
+                        className={expired ? "text-red-600 font-semibold" : ""}
+                    >
                         {new Date(
                             Number(option.expirationDate) * 1000,
                         ).toLocaleString()}
@@ -83,6 +106,38 @@ export function InformationCard({
                     </span>
                 </div>
             </div>
+
+            {sold && priceCents > 0n && (
+                <>
+                    <div className="flex justify-between">
+                        <span className="text-slate-500">
+                            {type === "buyer"
+                                ? "Payout to buyer"
+                                : "Payout owed"}
+                        </span>
+                        <span>{formatEther(payoff)} ETH</span>
+                    </div>
+
+                    <div className="flex justify-between">
+                        <span className="text-slate-500">
+                            {settled
+                                ? "Profit / loss"
+                                : "Estimated profit / loss"}
+                        </span>
+                        <span
+                            className={
+                                net >= 0n
+                                    ? "font-semibold text-green-600"
+                                    : "font-semibold text-red-600"
+                            }
+                        >
+                            {net >= 0n ? "+" : ""}
+                            {formatEther(net)} ETH (≈ {netUsd >= 0 ? "+" : "-"}$
+                            {Math.abs(netUsd).toFixed(2)})
+                        </span>
+                    </div>
+                </>
+            )}
 
             {type === "buyer" && expired && settled && !exercised && (
                 <button
@@ -92,11 +147,31 @@ export function InformationCard({
                     Exercise Option
                 </button>
             )}
+
             {type === "buyer" && exercised && (
                 <p className="mt-3 text-center text-xs font-semibold text-green-600">
-                    Option Exercised 
+                    Option Exercised
                 </p>
             )}
+            {type === "writer" &&
+                !sold &&
+                expired &&
+                option.lockedFunds > 0n && (
+                    <button
+                        onClick={() => onReclaim(optionId)}
+                        className="mt-4 w-full rounded bg-green-600 px-4 py-2 font-bold text-white hover:bg-green-700"
+                    >
+                        Reclaim {formatEther(option.lockedFunds)} ETH
+                    </button>
+                )}
+            {type === "writer" &&
+                !sold &&
+                expired &&
+                option.lockedFunds === 0n && ( //lockedFunds === 0 => collateral reclaimed!
+                    <p className="mt-3 text-center text-xs font-semibold text-green-600">
+                        Collateral reclaimed
+                    </p>
+                )}
         </div>
     );
 }

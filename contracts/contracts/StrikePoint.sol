@@ -14,6 +14,7 @@ contract StrikePoint {
         uint256 expirationDate;
         uint256 lockedFunds; //amount of eth locked by the writer
         uint256 finalPrice; // price after setteling the contract
+        uint256 collateral; //used to calculate the current loss/win (because lockedFunds get reset to 0 after exercise)
     }
 
     address public owner; 
@@ -36,7 +37,8 @@ contract StrikePoint {
             premium: _premium,
             expirationDate: _expirationDate,
             lockedFunds: msg.value,
-            finalPrice: 0
+            finalPrice: 0,
+            collateral: msg.value
         });
 
         options[optionCount] = newOption;

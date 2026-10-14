@@ -10,6 +10,7 @@ export type Option = {
     expirationDate: bigint;
     lockedFunds: bigint;
     finalPrice: bigint;
+    collateral: bigint;
 };
 
 
