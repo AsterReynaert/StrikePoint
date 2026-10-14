@@ -7,6 +7,7 @@ import {
     createTestClient,
     createWalletClient,
     custom,
+    formatEther,
     http,
     parseUnits,
 } from "viem";
@@ -28,6 +29,7 @@ export default function Dashboard() {
     const [address, setAddress] = useState<Address>();
     const [connectError, setConnectError] = useState<string>("");
     const [options, setOptions] = useState<Option[]>([]);
+    const [balance, setBalance] = useState<bigint>();
 
     const optionsRef = useRef<Option[]>([]);
     const priceRef = useRef<number | undefined>(undefined);
@@ -96,7 +98,7 @@ export default function Dashboard() {
                     expirationDate,
                     lockedFunds,
                     finalPrice,
-                    collateral
+                    collateral,
                 ]) => ({
                     writer,
                     buyer,
@@ -106,7 +108,7 @@ export default function Dashboard() {
                     expirationDate,
                     lockedFunds,
                     finalPrice,
-                    collateral
+                    collateral,
                 }),
             ),
         );
@@ -140,9 +142,9 @@ export default function Dashboard() {
     async function checkSettled() {
         const opts = optionsRef.current;
         const price = priceRef.current;
-        if (price === undefined)
-            return;
-        if (settlingRef.current)//already settling so dont do anything            
+        if (price === undefined) return;
+        if (settlingRef.current)
+            //already settling so dont do anything
             return;
 
         settlingRef.current = true; //lock
@@ -190,6 +192,26 @@ export default function Dashboard() {
         return () => clearInterval(timer);
     }, []);
 
+    useEffect(() => {
+        if (!address) return;
+        const walletAddress = address;
+
+        const publicClient = createPublicClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+
+        async function fetchBalance() {
+            setBalance(
+                await publicClient.getBalance({ address: walletAddress }),
+            );
+        }
+
+        fetchBalance();
+        const timer = setInterval(fetchBalance, 3000);
+        return () => clearInterval(timer);
+    }, [address]);
+
     async function handleExercise(optionId: bigint) {
         if (!address || !window.ethereum) {
             setConnectError("Connect your wallet first.");
@@ -219,37 +241,37 @@ export default function Dashboard() {
     }
 
     async function handleReclaim(optionId: bigint) {
-            if (!address || !window.ethereum) {
-                setConnectError("Connect your wallet first.");
-                return;
-            }
-    
-            const walletClient = createWalletClient({
-                chain: hardhat,
-                transport: custom(window.ethereum),
-            });
-            const publicClient = createPublicClient({
-                chain: hardhat,
-                transport: custom(window.ethereum),
-            });
-    
-            try {
-                const { request } = await publicClient.simulateContract({
-                    address: CONTRACT_ADDRESS,
-                    abi: CONTRACT_ABI,
-                    functionName: "reclaimFunds",
-                    args: [optionId],
-                    account: address,
-                });
-    
-                const hash = await walletClient.writeContract(request);
-                await publicClient.waitForTransactionReceipt({ hash });
-                fetchOptions();
-            } catch (e) {
-                console.error(e);
-                setConnectError("Reclaim failed: " + (e as Error).message);
-            }
+        if (!address || !window.ethereum) {
+            setConnectError("Connect your wallet first.");
+            return;
         }
+
+        const walletClient = createWalletClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+        const publicClient = createPublicClient({
+            chain: hardhat,
+            transport: custom(window.ethereum),
+        });
+
+        try {
+            const { request } = await publicClient.simulateContract({
+                address: CONTRACT_ADDRESS,
+                abi: CONTRACT_ABI,
+                functionName: "reclaimFunds",
+                args: [optionId],
+                account: address,
+            });
+
+            const hash = await walletClient.writeContract(request);
+            await publicClient.waitForTransactionReceipt({ hash });
+            fetchOptions();
+        } catch (e) {
+            console.error(e);
+            setConnectError("Reclaim failed: " + (e as Error).message);
+        }
+    }
 
     function sameAddress(a: string, b: string | undefined) {
         return b !== undefined && a.toLowerCase() === b.toLowerCase();
@@ -263,6 +285,11 @@ export default function Dashboard() {
     return (
         <>
             <Head title="Dashboard" />
+
+            <p>
+                Balance: {balance !== undefined ? formatEther(balance) : "..."}{" "}
+                ETH
+            </p>
 
             <EthPrice price={ethUsd} className="" />
 

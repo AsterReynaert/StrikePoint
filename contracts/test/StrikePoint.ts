@@ -12,12 +12,9 @@ describe("StrikePoint", async function () {
   const PUT = 1;
 
   async function deployStrikePoint() {
-    const mockPrice = await viem.deployContract("MockPrice");
-    const strikePoint = await viem.deployContract("StrikePoint", [
-      mockPrice.address,
-    ]);
-    return { mockPrice, strikePoint };
-  }
+  const strikePoint = await viem.deployContract("StrikePoint");
+  return { strikePoint };
+}
 
   async function futurExperationDate() {
     const block = await publicClient.getBlock();
@@ -28,7 +25,7 @@ describe("StrikePoint", async function () {
   // Write Option Tests
 
   it("Should store a new option with the correct values", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
 
@@ -49,7 +46,7 @@ describe("StrikePoint", async function () {
   });
 
   it("Should revert when writing an option with no locked funds", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
 
@@ -63,7 +60,7 @@ describe("StrikePoint", async function () {
   });
 
   it("Should revert when writing an option with an expiration date in the past", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer] = await viem.getWalletClients();
     const expiry = 0n; // past date
 
@@ -79,7 +76,7 @@ describe("StrikePoint", async function () {
   // Buy Option Tests
 
   it("Should let a buyer purchase an option and let the buyer pay the premium", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
 
@@ -118,7 +115,7 @@ describe("StrikePoint", async function () {
   });
 
   it("Should revert when the premium is incorrect", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
 
@@ -137,7 +134,7 @@ describe("StrikePoint", async function () {
   });
 
   it("Should revert when trying to buy an option that is already bought by someone else", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyerOne, buyerTwo] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
 
@@ -161,7 +158,7 @@ describe("StrikePoint", async function () {
   });
 
   it("Should revert when trying to buy an option that doesn't exist", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [buyer] = await viem.getWalletClients();
 
     await assert.rejects(
@@ -179,7 +176,7 @@ describe("StrikePoint", async function () {
   // settlePrice Tests
 
   it("Should revert when trying to settle an option that hasn't expired yet", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
 
@@ -194,7 +191,7 @@ describe("StrikePoint", async function () {
     });
 
     await assert.rejects(
-      strikePoint.write.settlePrice([0n], {
+      strikePoint.write.settlePrice([0n, 2100n], {
         account: writer.account,
       }),
       /revert/,
@@ -202,7 +199,7 @@ describe("StrikePoint", async function () {
   });
 
   it("should revert when trying to settle an option that has not been bought yet", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
 
@@ -212,7 +209,7 @@ describe("StrikePoint", async function () {
     });
 
     await assert.rejects(
-      strikePoint.write.settlePrice([0n], {
+      strikePoint.write.settlePrice([0n, 2100n], {
         account: writer.account,
       }),
       /revert/,
@@ -220,10 +217,9 @@ describe("StrikePoint", async function () {
   });
 
   it("Should correctly set finalPrice from the mock price feed after expiry", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
-    await mockPrice.write.setPrice([2100n]);
 
     await strikePoint.write.writeOption([CALL, 2000n, 20n, expiry], {
       account: writer.account,
@@ -239,7 +235,7 @@ describe("StrikePoint", async function () {
       seconds: 10000001,
     });
 
-    await strikePoint.write.settlePrice([0n], {
+    await strikePoint.write.settlePrice([0n, 2100n], {
       account: writer.account,
     });
 
@@ -248,10 +244,10 @@ describe("StrikePoint", async function () {
   });
 
   it("should revert when trying to settle an option that has already been settled", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
-    await mockPrice.write.setPrice([2100n]);
+
 
     await strikePoint.write.writeOption([CALL, 2000n, 20n, expiry], {
       account: writer.account,
@@ -267,12 +263,12 @@ describe("StrikePoint", async function () {
       seconds: 10000001,
     });
 
-    await strikePoint.write.settlePrice([0n], {
+    await strikePoint.write.settlePrice([0n, 2100n], {
       account: writer.account,
     });
 
     await assert.rejects(
-      strikePoint.write.settlePrice([0n], {
+      strikePoint.write.settlePrice([0n, 2100n], {
         account: writer.account,
       }),
       /revert/,
@@ -283,10 +279,10 @@ describe("StrikePoint", async function () {
 
   it("Should pay the buyer the correct payoff when exersising a in the money call option", async function () {
     //(in the money call option is when the final price is greater than the strike price)
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
-    await mockPrice.write.setPrice([2100n]); // final price is greater than strike price, so the call option is in the money
+     
 
     await strikePoint.write.writeOption([CALL, 2000n, 20n, expiry], {
       account: writer.account,
@@ -302,7 +298,7 @@ describe("StrikePoint", async function () {
       seconds: 10000001,
     });
 
-    await strikePoint.write.settlePrice([0n], {
+    await strikePoint.write.settlePrice([0n, 2100n], { // final price is greater than strike price, so the call option is in the money
       account: writer.account,
     });
 
@@ -321,7 +317,7 @@ describe("StrikePoint", async function () {
       address: buyer.account.address,
     });
 
-    const expectedPayoff = 2100n - 2000n;
+    const expectedPayoff = (1000n * (2100n - 2000n)) / 2100n;
     assert.equal(
       buyerBalanceAfter,
       buyerBalanceBefore + expectedPayoff - gasCost,
@@ -330,10 +326,9 @@ describe("StrikePoint", async function () {
 
   it("Should pay nothing to the buyer and return full collateral to writer for an out-of-the-money call option", async function () {
     //(out of the money call option is when the final price is less than the strike price
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
-    await mockPrice.write.setPrice([1900n]); // final price is less than strike price
 
     await strikePoint.write.writeOption([CALL, 2000n, 20n, expiry], {
       account: writer.account,
@@ -349,7 +344,7 @@ describe("StrikePoint", async function () {
       seconds: 10000001,
     });
 
-    await strikePoint.write.settlePrice([0n], {
+    await strikePoint.write.settlePrice([0n, 1900n], {// final price is less than strike price
       account: writer.account,
     });
 
@@ -379,10 +374,9 @@ describe("StrikePoint", async function () {
   });
 
   it("Should pay the buyer the correct payoff for an in-the-money put option", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
-    await mockPrice.write.setPrice([1900n]);
 
     await strikePoint.write.writeOption([PUT, 2000n, 20n, expiry], {
       account: writer.account,
@@ -397,7 +391,7 @@ describe("StrikePoint", async function () {
       seconds: 10000001,
     });
 
-    await strikePoint.write.settlePrice([0n], {
+    await strikePoint.write.settlePrice([0n, 1900n], {
       account: writer.account,
     });
 
@@ -416,7 +410,7 @@ describe("StrikePoint", async function () {
       address: buyer.account.address,
     });
 
-    const expectedPayoff = 2000n - 1900n;
+    const expectedPayoff = (1000n * (2000n - 1900n)) / 1900n;
     assert.equal(
       buyerBalanceAfter,
       buyerBalanceBefore + expectedPayoff - gasCost,
@@ -424,10 +418,9 @@ describe("StrikePoint", async function () {
   });
 
   it("Should pay nothing to the buyer and return full locked funds to writer for an out-of-the-money put option", async function () {
-    const { mockPrice, strikePoint } = await deployStrikePoint();
+    const { strikePoint } = await deployStrikePoint();
     const [writer, buyer] = await viem.getWalletClients();
     const expiry = await futurExperationDate();
-    await mockPrice.write.setPrice([2100n]);
 
     await strikePoint.write.writeOption([PUT, 2000n, 20n, expiry], {
       account: writer.account,
@@ -442,7 +435,7 @@ describe("StrikePoint", async function () {
       seconds: 10000001,
     });
 
-    await strikePoint.write.settlePrice([0n], {
+    await strikePoint.write.settlePrice([0n, 2100n], {
       account: writer.account,
     });
 
