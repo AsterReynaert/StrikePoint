@@ -1,3 +1,5 @@
+import { formatUnits } from "viem";
+
 export function profitBadge({
     optionType,
     strikePrice,
@@ -10,8 +12,8 @@ export function profitBadge({
     ethUsd: number;
 }) {
     const settled = finalPrice > 0n;
-    const strike = Number(strikePrice);
-    const price = settled ? Number(finalPrice) : ethUsd;
+    const strike = Number(formatUnits(strikePrice, 2));
+    const price = settled ? Number(formatUnits(finalPrice, 2)) : ethUsd;
 
     //optiontype === 0 => CALL
     const diff = optionType === 0 ? price - strike : strike - price;

@@ -8,6 +8,7 @@ import {
     formatEther,
     createTestClient,
     http,
+    formatUnits,
 } from "viem";
 import { hardhat } from "viem/chains";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
@@ -229,7 +230,7 @@ export default function BuyOption() {
                                 </p>
                                 <p>
                                     <strong>Strike Price:</strong>{" "}
-                                    {option.strikePrice.toString()}
+                                    {formatUnits(option.strikePrice, 2)}
                                 </p>
                                 <p>
                                     <strong>Premium:</strong>{" "}

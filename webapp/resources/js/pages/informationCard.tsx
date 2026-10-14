@@ -1,7 +1,7 @@
 import { Option } from "./option";
 import { profitBadge as ProfitBadge } from "./profitBadge";
 import { ZERO_ADDRESS } from "../lib/contract";
-import { formatEther } from "viem";
+import { formatEther, formatUnits } from "viem";
 
 export function InformationCard({
     option,
@@ -55,7 +55,7 @@ export function InformationCard({
 
                 <div className="flex justify-between">
                     <span className="text-slate-500">Strike Price</span>
-                    <span>${option.strikePrice.toString()}</span>
+                    <span>${formatUnits(option.strikePrice, 2)}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -70,7 +70,7 @@ export function InformationCard({
 
                 <div className="flex justify-between">
                     <span className="text-slate-500">Final Settled Price</span>
-                    <span>{settled ? `$${option.finalPrice.toString()}` : "Not settled yet"}</span>
+                    <span>{settled ? `$${formatUnits(option.finalPrice, 2)}` : "Not settled yet"}</span>
                 </div>
 
                 <div className="flex justify-between">

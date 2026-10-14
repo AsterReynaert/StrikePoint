@@ -8,6 +8,7 @@ import {
     createWalletClient,
     custom,
     http,
+    parseUnits,
 } from "viem";
 import { hardhat } from "viem/chains";
 import Popup from "./popup";
@@ -31,7 +32,6 @@ export default function Dashboard() {
     const optionsRef = useRef<Option[]>([]);
     const priceRef = useRef<number | undefined>(undefined);
     const settlingRef = useRef(false);
-
 
     optionsRef.current = options;
     priceRef.current = ethUsd;
@@ -126,7 +126,7 @@ export default function Dashboard() {
             address: CONTRACT_ADDRESS,
             abi: CONTRACT_ABI,
             functionName: "settlePrice",
-            args: [optionId, BigInt(currentPrice)],
+            args: [optionId, parseUnits(currentPrice.toFixed(2), 2)], // Convert currentPrice to a BigInt with 2 decimal places
             account,
         });
 
@@ -158,7 +158,7 @@ export default function Dashboard() {
                     o.expirationDate <= block.timestamp && //option has expired
                     o.finalPrice === 0n //not settled yet
                 ) {
-                    await autoSettle(BigInt(i), Math.round(price));
+                    await autoSettle(BigInt(i), price);
                 }
             }
         } catch (e) {

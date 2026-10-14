@@ -6,6 +6,7 @@ import {
     custom,
     type Address,
     parseEther,
+    parseUnits,
 } from "viem";
 import { hardhat } from "viem/chains";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "@/lib/contract";
@@ -73,11 +74,11 @@ export default function WriteOption() {
             functionName: "writeOption",
             args: [
                 optionType,
-                BigInt(strikePrice),
-                parseEther(premium),
+                parseUnits(strikePrice, 2),
+                parseEther(premium),//converts to wei so the contract can receive the premium
                 expiryTimestamp,
             ],
-            value: parseEther(collateral),
+            value: parseEther(collateral), //converts to wei so the contract can receive the collateral
             account: address,
         });
 
@@ -128,7 +129,7 @@ export default function WriteOption() {
                     <input
                         type="number"
                         min="0"
-                        step="any"
+                        step="0.01"
                         placeholder="Strike Price (USD)"
                         value={strikePrice}
                         onChange={(e) => setStrikePrice(e.target.value)}

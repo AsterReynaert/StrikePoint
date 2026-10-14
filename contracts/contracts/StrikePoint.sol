@@ -71,17 +71,19 @@ contract StrikePoint {
 
         require(option.buyer == msg.sender, "Only the buyer can exercise the option");
         require(option.finalPrice != 0, "settlement price not set yet");
+        require(option.lockedFunds > 0, "Already exercised");
 
-        uint256 payoff;
+        uint256 diff;
 
-        if(option.optionType == OptionType.CALL){
-            payoff = option.finalPrice > option.strikePrice ? option.finalPrice - option.strikePrice : 0;
+
+        if (option.optionType == OptionType.CALL) {
+            diff = option.finalPrice > option.strikePrice ? option.finalPrice - option.strikePrice : 0;
+        } else { // PUT
+            diff = option.finalPrice < option.strikePrice ? option.strikePrice - option.finalPrice : 0;
         }
-        else { // PUT
-            payoff = option.finalPrice < option.strikePrice ? option.strikePrice - option.finalPrice : 0; 
-        }
-    
-        if (payoff > option.lockedFunds) payoff = option.lockedFunds; //cap the payoff
+
+        uint256 payoff = (option.lockedFunds * diff) / option.finalPrice; //wei * (diff in $ per 1 eth) / price of 1 eth ($ per eth)  => devide by price of 1 eth to get the amount in wei
+        if (payoff > option.lockedFunds) payoff = option.lockedFunds; //cap the payoff to the locked funds
         uint256 leftOver = option.lockedFunds - payoff;
         option.lockedFunds = 0;
 
