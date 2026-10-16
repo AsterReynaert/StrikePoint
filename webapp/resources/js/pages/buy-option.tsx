@@ -126,7 +126,7 @@ export default function BuyOption() {
         });
 
         testClient.setIntervalMining({ interval: 1 }); //auto mine a block every second so the block.timestamp gets updated
-        const refresh = setInterval(fetchOptions, 5000); //because fetchOptions sets the chaintime
+        const refresh = setInterval(fetchOptions, 1000);
         return () => clearInterval(refresh);
     }, []);
 

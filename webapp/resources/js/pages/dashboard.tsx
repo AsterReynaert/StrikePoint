@@ -34,9 +34,15 @@ export default function Dashboard() {
     const optionsRef = useRef<Option[]>([]);
     const priceRef = useRef<number | undefined>(undefined);
     const settlingRef = useRef(false);
+    const addressRef = useRef<Address | undefined>(undefined);
 
-    optionsRef.current = options;
-    priceRef.current = ethUsd;
+    useEffect(() => {
+        addressRef.current = address;
+        optionsRef.current = options;
+        priceRef.current = ethUsd;
+    }, [options, address, ethUsd])
+
+    
 
     async function connectToWallet() {
         if (!window.ethereum) {
@@ -142,6 +148,7 @@ export default function Dashboard() {
     async function checkSettled() {
         const opts = optionsRef.current;
         const price = priceRef.current;
+        const currentSettler = addressRef.current?.toLowerCase()
         if (price === undefined) return;
         if (settlingRef.current)
             //already settling so dont do anything
@@ -156,13 +163,15 @@ export default function Dashboard() {
             const block = await publicClient.getBlock();
 
             for (let i = 0; i < opts.length; i++) {
-                const o = opts[i];
-                if (
-                    o.buyer !== ZERO_ADDRESS && //option has been bought
-                    o.expirationDate <= block.timestamp && //option has expired
-                    o.finalPrice === 0n //not settled yet
+                const option = opts[i];
+                if (                    
+                    option.buyer.toLowerCase() === currentSettler && //only the buyer can settle
+                    option.buyer !== ZERO_ADDRESS && //option has been bought
+                    option.expirationDate <= block.timestamp && //option has expired
+                    option.finalPrice === 0n //not settled yet
                 ) {
                     await autoSettle(BigInt(i), price);
+                    break;
                 }
             }
         } catch (e) {
@@ -287,7 +296,7 @@ export default function Dashboard() {
             <Head title="Dashboard" />
 
             <p>
-                Balance: {balance !== undefined ? formatEther(balance) : "..."}{" "}
+                Balance: {balance !== undefined ? formatEther(balance) : "loading..."}{" "}
                 ETH
             </p>
 

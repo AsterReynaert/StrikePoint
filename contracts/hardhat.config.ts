@@ -7,6 +7,9 @@ export default defineConfig({
     profiles: {
       default: {
         version: "0.8.34",
+        settings: {
+          evmVersion: "london",
+        },
       },
       production: {
         version: "0.8.34",
@@ -15,6 +18,7 @@ export default defineConfig({
             enabled: true,
             runs: 200,
           },
+          evmVersion: "london",
         },
       },
     },

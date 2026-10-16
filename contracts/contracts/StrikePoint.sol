@@ -17,7 +17,7 @@ contract StrikePoint {
         uint256 collateral; //used to calculate the current loss/win (because lockedFunds get reset to 0 after exercise)
     }
 
-    address public owner; 
+    address public immutable owner; 
     mapping(uint256 => Option) public options;
     uint256 public optionCount = 0; //to give a unique id to each option
     
