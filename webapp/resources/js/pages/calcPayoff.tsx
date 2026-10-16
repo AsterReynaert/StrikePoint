@@ -1,5 +1,6 @@
 import { Option } from "./option";
 
+//same calc as the smart contract
 export function calcPayoff(option: Option, price: bigint): bigint {
     if (price === 0n) return 0n;
 

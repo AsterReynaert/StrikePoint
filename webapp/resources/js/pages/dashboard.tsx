@@ -148,7 +148,7 @@ export default function Dashboard() {
     async function checkSettled() {
         const opts = optionsRef.current;
         const price = priceRef.current;
-        const currentSettler = addressRef.current?.toLowerCase()
+        const currentSettler = addressRef.current?.toLowerCase();
         if (price === undefined) return;
         if (settlingRef.current)
             //already settling so dont do anything

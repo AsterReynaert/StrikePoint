@@ -76,8 +76,6 @@ contract StrikePoint {
         require(option.lockedFunds > 0, "Already exercised");
 
         uint256 diff;
-
-
         if (option.optionType == OptionType.CALL) {
             diff = option.finalPrice > option.strikePrice ? option.finalPrice - option.strikePrice : 0;
         } else { // PUT
